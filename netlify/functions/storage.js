@@ -1,4 +1,4 @@
-const JSONBIN_API_KEY = "$2a$10$akQgbAFg6h4iJ8gpZ.oa8OTRQi0ivBeMScU.UE2hcDQ2MWiKxDh6.";
+const JSONBIN_API_KEY = "$2a$10$XXsJUgI7fVNUwMa9M6uo0OY8RNjRPjbA.jbuVd6Y0Dom850V3Un4a";
 const JSONBIN_BIN_ID  = "6a21ff8eda38895dfe8939b6";
 const BASE = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 const HEADERS = { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" };
@@ -6,7 +6,6 @@ const HEADERS = { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" };
 exports.handler = async (event) => {
   const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type" };
 
-  // Handle CORS preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: cors, body: "" };
   }
