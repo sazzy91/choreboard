@@ -4,24 +4,40 @@ const BASE = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 const HEADERS = { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" };
 
 exports.handler = async (event) => {
+  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type" };
+
+  // Handle CORS preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: cors, body: "" };
+  }
+
   try {
     if (event.httpMethod === "GET") {
       const r = await fetch(`${BASE}/latest`, { headers: HEADERS });
-      const data = await r.json();
-      return { statusCode: 200, headers: {"Access-Control-Allow-Origin":"*"}, body: JSON.stringify(data) };
+      const text = await r.text();
+      console.log("GET response:", r.status, text.substring(0, 200));
+      if (!r.ok) return { statusCode: r.status, headers: cors, body: text };
+      const data = JSON.parse(text);
+      return { statusCode: 200, headers: { ...cors, "Content-Type": "application/json" }, body: JSON.stringify(data) };
     }
+
     if (event.httpMethod === "PUT") {
-      const body = JSON.parse(event.body);
+      const body = event.body;
+      console.log("PUT body length:", body?.length, "preview:", body?.substring(0, 100));
       const r = await fetch(BASE, {
         method: "PUT",
         headers: { ...HEADERS, "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: body
       });
-      const data = await r.json();
-      return { statusCode: 200, headers: {"Access-Control-Allow-Origin":"*"}, body: JSON.stringify(data) };
+      const text = await r.text();
+      console.log("PUT response:", r.status, text.substring(0, 200));
+      if (!r.ok) return { statusCode: r.status, headers: cors, body: text };
+      return { statusCode: 200, headers: { ...cors, "Content-Type": "application/json" }, body: text };
     }
-    return { statusCode: 405, body: "Method not allowed" };
+
+    return { statusCode: 405, headers: cors, body: "Method not allowed" };
   } catch(e) {
-    return { statusCode: 500, body: e.message };
+    console.error("Function error:", e);
+    return { statusCode: 500, headers: cors, body: e.message };
   }
 };
