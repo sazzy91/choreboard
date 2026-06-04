@@ -22,27 +22,37 @@ input, select, button { font-family: inherit; }
 // Storage via Netlify function — no CORS or CDN issues
 const STORAGE_URL = "/.netlify/functions/storage";
 window._binCache = null;
+window._lastFetch = 0;
+const MIN_FETCH_INTERVAL = 30000; // minimum 30s between GETs
+
+async function fetchBin() {
+  const now = Date.now();
+  if (window._binCache && (now - window._lastFetch) < MIN_FETCH_INTERVAL) {
+    return window._binCache; // use cache if fresh
+  }
+  const r = await fetch(STORAGE_URL);
+  if (!r.ok) throw new Error("read failed: " + r.status);
+  const bin = await r.json();
+  window._binCache = bin;
+  window._lastFetch = now;
+  return bin;
+}
 
 window.storage = {
   async get(key) {
     try {
-      const r = await fetch(STORAGE_URL);
-      if (!r.ok) { console.warn("read failed:", r.status); return null; }
-      const bin = await r.json();
-      window._binCache = bin;
+      const bin = await fetchBin();
       const val = bin[key];
       return val !== undefined ? { key, value: JSON.stringify(val) } : null;
     } catch(e) { console.error("storage.get:", e); return null; }
   },
-  async set(key, value) {
+  async set(key, value, shared) {
     try {
+      // Use cache for the read — don't fetch again if we just fetched
       let bin = window._binCache || {};
-      try {
-        const r = await fetch(STORAGE_URL);
-        if (r.ok) bin = await r.json() || {};
-      } catch(e) {}
       bin[key] = JSON.parse(value);
       window._binCache = bin;
+      window._lastFetch = Date.now(); // mark as fresh so next read uses cache
       const w = await fetch(STORAGE_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
